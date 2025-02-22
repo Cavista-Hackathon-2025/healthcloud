@@ -5,7 +5,7 @@ import { TranscriptionPaths } from "./TranscriptionPaths";
 
 export const TranscriptionRoutes: RouteObject[] = [
     {
-        path: "/",
+        path: "/dashboard",
         element: <DashboardLayout />,
         children: [
             {
