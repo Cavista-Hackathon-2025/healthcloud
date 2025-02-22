@@ -14,8 +14,8 @@ class AudioProcessor:
         print("Loading Whisper model...")
         self.model = whisper.load_model("base")
         print("Loading spaCy model...")
-        self.nlp = spacy.load("en_core_sci_md")  
-        self.api_url = "http://localhost:8000/api"
+        self.nlp = spacy.load("en_core_web_sm")  
+        self.api_url = "https://cavista.onrender.com/api"
         print("System ready!")
         
     def record_audio(self):
