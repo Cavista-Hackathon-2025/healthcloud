@@ -6,3 +6,10 @@ export interface ReportPreview {
     patientName: string;
     doctorName: string;
 }
+
+export interface Report {
+    id: number;
+    title: string;
+    summary: string;
+    dateCreated: string;
+}
