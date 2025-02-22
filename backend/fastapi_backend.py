@@ -27,7 +27,8 @@ reports = sqlalchemy.Table(
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column("timestamp", sqlalchemy.DateTime),
     sqlalchemy.Column("transcript", sqlalchemy.Text),
-    sqlalchemy.Column("medical_entities", sqlalchemy.JSON)
+    sqlalchemy.Column("medical_entities", sqlalchemy.JSON),
+    sqlalchemy.Column("ai_analysis", JSON)
 )
 
 # Create tables
