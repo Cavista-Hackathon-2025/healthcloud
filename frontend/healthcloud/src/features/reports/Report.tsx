@@ -1,16 +1,22 @@
 import { useReport } from "@/api/reports/useReport";
 import { ErrorNotification } from "@/components/ErrorNotification";
 import { Skeleton } from "@/components/ui/skeleton";
+import { generateDocumentTitle } from "@/utils/generateDocumentTitle";
+import { useDocumentTitle } from "@uidotdev/usehooks";
 import { useParams } from "react-router-dom";
 
 export const Report = () => {
     const { id } = useParams<{ id: string }>();
-
     const reportId = id ? Number(id) : 0;
+    const {
+        data: report,
+        isError,
+        isLoading,
+    } = useReport(reportId, Boolean(reportId));
 
-    const { data: report, isError, isLoading } = useReport(reportId, true);
+    const reportTitle = report?.title || "Report";
+    useDocumentTitle(generateDocumentTitle(reportTitle));
 
-    console.log("Report: ", report);
     if (isLoading) {
         <div className="flex flex-col p-6 grow gap-2">
             <div className="flex grow overflow-y-auto flex-row gap-2 p-5 pl-1">

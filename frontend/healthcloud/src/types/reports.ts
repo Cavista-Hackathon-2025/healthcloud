@@ -1,5 +1,5 @@
 export interface ReportPreview {
-    id: string;
+    id: number | string;
     title: string;
     dateCreated: Date;
     summary: string;
@@ -8,8 +8,10 @@ export interface ReportPreview {
 }
 
 export interface Report {
-    id: number;
+    id: number | string;
     title: string;
     summary: string;
-    dateCreated: string;
+    dateCreated: Date;
+    patientName: string;
+    doctorName: string;
 }
