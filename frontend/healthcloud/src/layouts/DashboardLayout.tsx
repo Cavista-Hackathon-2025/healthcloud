@@ -8,7 +8,7 @@ export const DashboardLayout = () => {
             <aside className="col-span-2 h-full bg-slate-100">
                 <Sidebar />
             </aside>
-            <div className="flex flex-col col-span-10 h-full shadow-sm shadow-slate-100">
+            <div className="col-span-12 flex flex-col md:col-span-10 h-full shadow-sm shadow-slate-100">
                 {/* <Navbar /> */}
                 <Outlet />
             </div>

@@ -9,7 +9,7 @@ export const TranscriptionRoutes: RouteObject[] = [
         element: <DashboardLayout />,
         children: [
             {
-                path: TranscriptionPaths.START_SESSION,
+                path: TranscriptionPaths.TRANSCRIBE,
                 element: <RecordSession />,
             },
         ],

@@ -1,6 +1,6 @@
 import logoImage from "@/assets/healthcloud_logo.png";
 import { UserInfo } from "@/components/UserInfo";
-import { ReportPaths } from "@/routes/reports/ReportsPaths";
+import { ReportsPaths } from "@/routes/reports/ReportsPaths";
 import { TranscriptionPaths } from "@/routes/transcription/TranscriptionPaths";
 import { FaNotesMedical, FaRegFileLines } from "react-icons/fa6";
 import { LuVideotape } from "react-icons/lu";
@@ -9,17 +9,17 @@ import { NavLink } from "react-router-dom";
 export const Sidebar = () => {
     const LINKS = [
         {
-            label: "Sessions",
+            label: "Transcribe",
             icon: <FaNotesMedical />,
-            href: TranscriptionPaths.START_SESSION,
+            href: TranscriptionPaths.TRANSCRIBE,
         },
         {
             label: "Reports",
             icon: <FaRegFileLines />,
-            href: ReportPaths.REPORTS,
+            href: ReportsPaths.REPORTS,
         },
         {
-            label: "Past Recordings",
+            label: "Recordings",
             icon: <LuVideotape />,
             href: TranscriptionPaths.RECORDING_HISTORY,
         },
@@ -28,10 +28,18 @@ export const Sidebar = () => {
     return (
         <nav className="flex flex-col gap-1 justify-start p-4 h-full">
             <div className="flex flex-row items-center justify-start p-3">
-                <img src={logoImage} alt="logo" className="w-16 h-16" />
-                <h3 className="text-xl text-sky-800 font-semibold">
-                    HealthCloud
-                </h3>
+                <img src={logoImage} alt="logo" className="w-18 h-18" />
+                <div className="flex flex-col -mt-1">
+                    <h3 className="text-xl text-sky-800 font-semibold">
+                        HealthCloud
+                    </h3>
+                    <span className="text-xs text-right text-slate-500 -mt-1">
+                        by{" "}
+                        <span className="text-emerald-800 font-semibold">
+                            BioTrio
+                        </span>
+                    </span>
+                </div>
             </div>
             {LINKS.map((link) => (
                 <NavLink

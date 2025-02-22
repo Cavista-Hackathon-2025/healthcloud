@@ -33,9 +33,6 @@ export const useAudio = (waveformElementId = "waveform") => {
         websocketRef.current.onmessage = (event) => {
             setTranscript((prev) => prev + " " + event.data);
         };
-        websocketRef.current.onclose = () => {
-            console.log("WebSocket closed");
-        };
 
         return () => {
             websocketRef.current?.close();
@@ -53,6 +50,7 @@ export const useAudio = (waveformElementId = "waveform") => {
 
         const recorder = new RecordRTC(stream, {
             type: "audio",
+            disableLogs: true,
             mimeType: "audio/webm",
             recorderType: RecordRTC.StereoAudioRecorder,
             timeSlice: AUDIO_SAMPLE_RATE_IN_MS,

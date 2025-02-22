@@ -1,4 +1,4 @@
 export const TranscriptionPaths = {
-    START_SESSION: "/dashboard/start-session",
+    TRANSCRIBE: "/dashboard/transcribe",
     RECORDING_HISTORY: "/dashboard/recordings",
 };
