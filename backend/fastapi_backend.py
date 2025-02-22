@@ -4,9 +4,13 @@ from typing import List, Optional
 from datetime import datetime
 import databases
 import sqlalchemy
+import os
+from dotenv import load_dotenv
+
+
 
 # Database configuration
-DATABASE_URL = "postgresql://user:password@localhost/dbname"
+DATABASE_URL = os.getenv("DATABASE_URL")
 database = databases.Database(DATABASE_URL)
 metadata = sqlalchemy.MetaData()
 
