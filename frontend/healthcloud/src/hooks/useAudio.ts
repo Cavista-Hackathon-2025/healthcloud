@@ -51,7 +51,7 @@ export const useAudio = (waveformElementId = "waveform") => {
         const recorder = new RecordRTC(stream, {
             type: "audio",
             disableLogs: true,
-            mimeType: "audio/webm",
+            mimeType: "audio/wav",
             recorderType: RecordRTC.StereoAudioRecorder,
             timeSlice: AUDIO_SAMPLE_RATE_IN_MS,
             ondataavailable: (blob) => {
