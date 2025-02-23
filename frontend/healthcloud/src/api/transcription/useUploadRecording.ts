@@ -1,16 +1,26 @@
 import { axiosService } from "@/api/axiosConfig";
 import { useMutation } from "@tanstack/react-query";
 
-const uploadTranscription = async (recording: Blob) => {
+interface UploadData {
+    recording: Blob;
+    duration: number;
+}
+const uploadTranscription = async (data: UploadData) => {
     const formData = new FormData();
-    formData.append("file", recording);
+    formData.append("file", data.recording, "recording.wav");
+    formData.append("duration", data.duration.toString());
 
-    const response = await axiosService.post("/transcription/upload", formData);
+    const response = await axiosService.post("/recording/upload/", formData, {
+        headers: { "content-type": "multipart/form-data" },
+    });
     return response.data;
 };
 
-export const useUploadRecording = () => {
+export const useUploadRecording = (onSuccess: () => void) => {
     return useMutation({
-        mutationFn: (recording: Blob) => uploadTranscription(recording),
+        mutationFn: (data: UploadData) => uploadTranscription(data),
+        onSuccess: () => {
+            onSuccess();
+        },
     });
 };

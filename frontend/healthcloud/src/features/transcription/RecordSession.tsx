@@ -1,8 +1,10 @@
+import { useUploadRecording } from "@/api/transcription/useUploadRecording";
 import { useAudio } from "@/hooks/useAudio";
 import { generateDocumentTitle } from "@/utils/generateDocumentTitle";
 import { useDocumentTitle } from "@uidotdev/usehooks";
 import clsx from "clsx";
 import { FaMicrophone, FaPause, FaPlay, FaStop } from "react-icons/fa6";
+import { toast } from "sonner";
 
 export const RecordSession = () => {
     useDocumentTitle(generateDocumentTitle("Record Session"));
@@ -19,6 +21,21 @@ export const RecordSession = () => {
     const isRecordingNotStarted = !isRecording && !isPaused;
     const isRecordingOngoing = isRecording && !isPaused;
 
+    const uploadRecording = useUploadRecording(() => {
+        toast.success("Recording uploaded successfully");
+    });
+
+    const handleStopRecording = async () => {
+        const result = await stopRecording();
+
+        if (result) {
+            uploadRecording.mutate({
+                recording: result.blob,
+                duration: result.duration,
+            });
+        }
+    };
+
     return (
         <div className="flex flex-col gap-2 p-6 grow">
             <h1 className="text-3xl font-semibold text-sky-800">Transcribe</h1>
@@ -27,9 +44,7 @@ export const RecordSession = () => {
                 <div
                     id="waveform"
                     className="rounded-lg w-[32rem] bg-slate-50 table-cell align-middle shadow-inner"></div>
-                {isRecordingStarted && (
-                    <div className="py-2 px-4 text-center w-84 mb-2 text-slate-500 bg-slate-50 rounded-md"></div>
-                )}
+
                 <div className="flex flex-row gap-2">
                     <button
                         className={clsx(
@@ -64,7 +79,7 @@ export const RecordSession = () => {
                     {isRecordingStarted && (
                         <button
                             className="py-3 px-5 text-white bg-red-500 hover:bg-red-600 duration-100 shadow-sm rounded-full font-semibold"
-                            onClick={stopRecording}>
+                            onClick={handleStopRecording}>
                             <FaStop />
                         </button>
                     )}
