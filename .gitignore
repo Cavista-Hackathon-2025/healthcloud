@@ -2,3 +2,5 @@
 
 # Local Netlify folder
 .netlify
+*.wav
+db.sqlite3
