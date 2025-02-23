@@ -18,12 +18,12 @@ export const ReportPreviewCard = ({ report }: ReportPreviewCardProps) => {
         },
         {
             label: "Patient",
-            value: report?.patientName,
+            value: report.patient.name,
             icon: <MdPersonalInjury />,
         },
         {
             label: "Doctor",
-            value: report?.doctorName,
+            value: report.doctor.name,
             icon: <FaUserDoctor />,
         },
     ];
@@ -33,7 +33,7 @@ export const ReportPreviewCard = ({ report }: ReportPreviewCardProps) => {
     return (
         <Link
             to={reportUrl}
-            className="p-4 h-[21rem] bg-white rounded-lg shadow-sm shadow-sky-50 border border-slate-200 w-[20rem] flex flex-col hover:bg-sky-50 hover:border-sky-200 hover:shadow-sm hover:shadow-sky-200 hover:duration-100">
+            className="p-4 h-[21rem] bg-white rounded-lg shadow-sm shadow-sky-50 border border-slate-200 w-[18rem] flex flex-col hover:bg-sky-50 hover:border-sky-200 hover:shadow-sm hover:shadow-sky-200 hover:duration-100">
             <h3 className="font-semibold text-sky-600 text-lg leading-tight">
                 {truncateText(report.title, 40, {
                     byWords: true,
