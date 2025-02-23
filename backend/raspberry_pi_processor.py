@@ -7,16 +7,26 @@ import spacy
 from datetime import datetime
 import soundfile as sf
 import tempfile
+from transformers import pipeline
 
 class AudioProcessor:
     def __init__(self):
         print("Loading Whisper model...")
-        self.model = whisper.load_model("base")
-        print("Loading spaCy model...")
-        self.nlp = spacy.load("en_core_web_sm")  
-        self.api_url = "http://localhost:8000/api"
+        self.whisper_model = whisper.load_model("base")
         
-        # Medical keywords for analysis
+        print("Loading medical NLP model...")
+        try:
+            # Use advanced medical spaCy model
+            self.nlp = spacy.load("en_core_sci_md")
+        except OSError:
+            print("Medical spaCy model not found. Please install with:")
+            print("pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.4.0/en_core_sci_md-0.4.0.tar.gz")
+            raise
+        
+        # Initialize zero-shot classifier for advanced analysis
+        self.classifier = pipeline("zero-shot-classification")
+        
+        # Medical terminology and analysis components
         self.medical_terms = {
             "severity_keywords": {
                 "severe": ["severe", "intense", "extreme", "worst"],
@@ -29,6 +39,7 @@ class AudioProcessor:
                 "routine": ["routine", "chronic", "ongoing"]
             }
         }
+        
         print("System ready!")
         
     def record_audio(self):
@@ -68,101 +79,239 @@ class AudioProcessor:
     def transcribe_audio(self, audio_path):
         """Convert audio to text using Whisper"""
         print("Transcribing audio...")
-        result = self.model.transcribe(audio_path)
+        result = self.whisper_model.transcribe(audio_path)
         print("\nTRANSCRIPTION:")
         print("-"*50)
         print(result["text"])
         print("-"*50 + "\n")
         return result["text"]
         
-    def extract_medical_info(self, text):
-        """Extract medical entities and key information"""
+    def advanced_medical_analysis(self, text):
+        """Comprehensive medical analysis using advanced NLP techniques"""
         doc = self.nlp(text)
         
-        medical_entities = {
-            "conditions": [],
-            "medications": [],
-            "symptoms": [],
-            "procedures": []
+        # Advanced analysis components
+        analysis = {
+            "symptoms": self._extract_symptoms(text),
+            "medical_history": self._extract_medical_history(text),
+            "risk_factors": self._identify_risk_factors(text),
+            "urgency": self._assess_urgency(text),
+            "treatment_suggestions": self._suggest_treatments(text),
+            "key_observations": self._extract_key_observations(text)
         }
         
-        for ent in doc.ents:
-            if ent.label_ == "CONDITION":
-                medical_entities["conditions"].append(ent.text)
-            elif ent.label_ == "MEDICATION":
-                medical_entities["medications"].append(ent.text)
-            elif ent.label_ == "SYMPTOM":
-                medical_entities["symptoms"].append(ent.text)
-            elif ent.label_ == "PROCEDURE":
-                medical_entities["procedures"].append(ent.text)
+        # Print detailed analysis report
+        self._print_comprehensive_report(analysis)
         
-        return medical_entities
-
-    def analyze_medical_content(self, text):
-        """Analyze medical content for severity and urgency"""
-        text_lower = text.lower()
-        medical_info = self.extract_medical_info(text)
+        return analysis
+    
+    def _extract_symptoms(self, text):
+        """Extract symptoms using medical NLP"""
+        doc = self.nlp(text.lower())
+        symptoms = []
         
-        # Determine severity
-        severity = {"level": "mild", "confidence": 0.5}
+        # Symptom patterns from medical terminology
+        symptom_patterns = [
+            "pain", "ache", "discomfort", "swelling", "nausea", 
+            "fatigue", "dizziness", "numbness", "weakness"
+        ]
+        
+        for sent in doc.sents:
+            for pattern in symptom_patterns:
+                if pattern in sent.text.lower():
+                    symptoms.append({
+                        "symptom": pattern,
+                        "context": sent.text.strip(),
+                        "severity": self._determine_symptom_severity(sent.text)
+                    })
+        
+        return symptoms
+    
+    def _determine_symptom_severity(self, text):
+        """Determine symptom severity"""
         for level, keywords in self.medical_terms["severity_keywords"].items():
-            if any(keyword in text_lower for keyword in keywords):
-                severity = {"level": level, "confidence": 0.8}
-                break
-
-        # Determine urgency
-        urgency = {"level": "routine", "confidence": 0.5}
-        for level, keywords in self.medical_terms["urgency_keywords"].items():
-            if any(keyword in text_lower for keyword in keywords):
-                urgency = {"level": level, "confidence": 0.8}
-                break
-
-        # Print analysis report
-        self._print_analysis_report(medical_info, severity, urgency)
-
-        return {
-            "symptoms": medical_info,
-            "severity": severity,
-            "urgency": urgency
+            if any(keyword in text.lower() for keyword in keywords):
+                return level
+        return "unspecified"
+    
+    def _extract_medical_history(self, text):
+        """Extract medical history mentions"""
+        doc = self.nlp(text.lower())
+        history = []
+        
+        history_patterns = [
+            "diagnosed with", "history of", "previous", 
+            "surgery", "medication", "allergy"
+        ]
+        
+        for sent in doc.sents:
+            for pattern in history_patterns:
+                if pattern in sent.text:
+                    history.append({
+                        "description": sent.text.strip(),
+                        "category": self._categorize_history_item(sent.text)
+                    })
+        
+        return history
+    
+    def _categorize_history_item(self, text):
+        """Categorize medical history item"""
+        categories = {
+            "condition": ["diagnosed", "disease", "syndrome"],
+            "medication": ["medicine", "drug", "prescription"],
+            "procedure": ["surgery", "operation"],
+            "allergy": ["allergic", "reaction"]
         }
-
-    def _print_analysis_report(self, medical_info, severity, urgency):
-        """Print formatted analysis report"""
-        print("\nMEDICAL ANALYSIS REPORT")
-        print("=" * 50)
-
-        if any(medical_info["symptoms"]):
-            print("\nSYMPTOMS IDENTIFIED:")
-            for symptom in medical_info["symptoms"]:
-                print(f"- {symptom}")
         
-        if any(medical_info["conditions"]):
-            print("\nMEDICAL CONDITIONS:")
-            for condition in medical_info["conditions"]:
-                print(f"- {condition}")
-
-        print("\nSEVERITY ASSESSMENT:")
-        print(f"Level: {severity['level'].upper()}")
-        print(f"Confidence: {severity['confidence']*100:.1f}%")
-
+        for category, keywords in categories.items():
+            if any(keyword in text.lower() for keyword in keywords):
+                return category
+        return "other"
+    
+    def _identify_risk_factors(self, text):
+        """Identify potential risk factors"""
+        risk_categories = [
+            "lifestyle", "family history", "medical history", "environmental"
+        ]
+        
+        # Use zero-shot classification for risk factor identification
+        try:
+            result = self.classifier(
+                text, 
+                risk_categories, 
+                multi_label=True
+            )
+            
+            return [
+                {
+                    "category": cat, 
+                    "score": score
+                } 
+                for cat, score in zip(result['labels'], result['scores']) 
+                if score > 0.5
+            ]
+        except Exception as e:
+            print(f"Risk factor analysis error: {e}")
+            return []
+    
+    def _assess_urgency(self, text):
+        """Assess medical urgency"""
+        urgent_indicators = [
+            "severe pain", "chest pain", "difficulty breathing", 
+            "sudden onset", "severe headache"
+        ]
+        
+        emergency_indicators = [
+            "heart attack", "stroke", "cannot breathe", 
+            "uncontrolled bleeding"
+        ]
+        
+        # Check for emergency indicators
+        for indicator in emergency_indicators:
+            if indicator in text.lower():
+                return {
+                    "level": "emergency",
+                    "recommendation": "Immediate emergency care required"
+                }
+        
+        # Check for urgent indicators
+        urgent_matches = [
+            ind for ind in urgent_indicators 
+            if ind in text.lower()
+        ]
+        
+        if urgent_matches:
+            return {
+                "level": "urgent",
+                "indicators": urgent_matches,
+                "recommendation": "Prompt medical attention recommended"
+            }
+        
+        return {
+            "level": "routine",
+            "recommendation": "Standard medical follow-up suggested"
+        }
+    
+    def _suggest_treatments(self, text):
+        """Generate treatment suggestions"""
+        urgency = self._assess_urgency(text)
+        
+        # Basic treatment recommendation based on urgency
+        treatments = {
+            "emergency": [
+                "Call emergency services immediately",
+                "Seek immediate hospital care",
+                "Follow instructions of medical professionals"
+            ],
+            "urgent": [
+                "Schedule urgent medical consultation",
+                "Prepare for potential diagnostic tests",
+                "Follow recommended immediate care steps"
+            ],
+            "routine": [
+                "Schedule routine check-up",
+                "Discuss symptoms with primary care physician",
+                "Monitor and track symptoms"
+            ]
+        }
+        
+        return treatments.get(urgency['level'], [])
+    
+    def _extract_key_observations(self, text):
+        """Extract key clinical observations"""
+        doc = self.nlp(text)
+        observations = []
+        
+        observation_categories = [
+            "vital signs", "physical symptoms", 
+            "medical conditions", "test results"
+        ]
+        
+        # Use zero-shot classification for observation extraction
+        try:
+            result = self.classifier(
+                text, 
+                observation_categories, 
+                multi_label=True
+            )
+            
+            return [
+                {
+                    "category": cat, 
+                    "score": score,
+                    "context": text
+                } 
+                for cat, score in zip(result['labels'], result['scores']) 
+                if score > 0.5
+            ]
+        except Exception as e:
+            print(f"Observation extraction error: {e}")
+            return []
+    
+    def _print_comprehensive_report(self, analysis):
+        """Print a comprehensive medical analysis report"""
+        print("\n" + "="*50)
+        print("COMPREHENSIVE MEDICAL ANALYSIS REPORT")
+        print("="*50)
+        
+        # Print detailed sections
+        print("\nSYMPTOMS:")
+        for symptom in analysis.get('symptoms', []):
+            print(f"- {symptom['symptom']} (Severity: {symptom.get('severity', 'N/A')})")
+        
         print("\nURGENCY ASSESSMENT:")
-        print(f"Level: {urgency['level'].upper()}")
+        urgency = analysis.get('urgency', {})
+        print(f"Level: {urgency.get('level', 'Unknown')}")
+        print(f"Recommendation: {urgency.get('recommendation', 'N/A')}")
         
-        print("\nRECOMMENDATIONS:")
-        if urgency['level'] == 'emergency':
-            print("- IMMEDIATE MEDICAL ATTENTION REQUIRED")
-            print("- Emergency services should be contacted")
-        elif urgency['level'] == 'urgent':
-            print("- Urgent medical consultation recommended")
-            print("- Follow-up within 24-48 hours")
-        else:
-            print("- Routine follow-up recommended")
-            print("- Monitor symptoms for changes")
-
-        print("=" * 50)
-
+        print("\nTREATMENT SUGGESTIONS:")
+        for treatment in analysis.get('treatment_suggestions', []):
+            print(f"- {treatment}")
+        
+        print("="*50 + "\n")
+    
     def send_to_api(self, data):
-        """Send data to API"""
+        """Send analysis data to API"""
         try:
             url = f"{self.api_url}/reports"
             response = requests.post(
@@ -174,8 +323,6 @@ class AudioProcessor:
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error sending data to API: {e}")
-            if hasattr(e, 'response'):
-                print("Error details:", e.response.text)
             return None
 
     def process_conversation(self):
@@ -187,18 +334,17 @@ class AudioProcessor:
                 audio_path = self.save_audio(audio)
                 transcript = self.transcribe_audio(audio_path)
                 
-                # Get analysis right after transcription
-                analysis = self.analyze_medical_content(transcript)
+                # Perform advanced medical analysis
+                medical_analysis = self.advanced_medical_analysis(transcript)
                 
                 # Prepare combined report data
                 report_data = {
                     "timestamp": datetime.now().isoformat(),
                     "transcript": transcript,
-                    "medical_entities": self.extract_medical_info(transcript),
-                    "analysis": analysis
+                    "medical_analysis": medical_analysis
                 }
                 
-                # Send to API
+                # Send to API (optional)
                 response = self.send_to_api(report_data)
                 if response:
                     print("\nReport and analysis saved successfully")
@@ -212,7 +358,7 @@ class AudioProcessor:
 
 def main():
     processor = AudioProcessor()
-    print("\nStarting medical transcription system...")
+    print("\nStarting advanced medical transcription system...")
     print("Press Ctrl+C to stop recording when finished speaking")
     processor.process_conversation()
 
