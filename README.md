@@ -16,3 +16,7 @@ This repository includes the entire application code; frontend and backend.
 -   Lastly, install the frontend requirements with `npm install`.
 
 The application will be live at `localhost:5173`
+
+### Credits
+
+This application was built by the BioTrio team, for the 2025 edition of the Cavista Hackathon
