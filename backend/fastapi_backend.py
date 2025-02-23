@@ -190,14 +190,26 @@ async def get_report(report_id: int):
 @app.post("/api/reports/", response_model=Report)
 async def create_report(report: Report):
     try:
+        # Validate the transcript content
+        if not report.transcript.strip():
+            raise HTTPException(status_code=400, detail="Empty transcript")
+            
         query = reports.insert().values(
             timestamp=report.timestamp,
             transcript=report.transcript,
             medical_entities=report.medical_entities.dict()
         )
         last_record_id = await database.execute(query)
-        logger.info("Report created successfully")
-        return {**report.dict(), "id": last_record_id}
+        
+        # Return complete response including ID
+        response_data = {
+            "id": last_record_id,
+            "timestamp": report.timestamp,
+            "transcript": report.transcript,
+            "medical_entities": report.medical_entities.dict()
+        }
+        logger.info(f"Report created with ID: {last_record_id}")
+        return response_data
     except Exception as e:
         logger.error(f"Error creating report: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -283,56 +295,56 @@ async def test_database():
         logger.error(f"Database test failed: {e}")
         return {"status": "Database connection failed", "error": str(e)}
 
-@app.post("/api/transcribe")
-async def transcribe_audio(audio: UploadFile = File(...)):
-    try:
-        # Save uploaded file to a temporary location
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
-            temp_audio.write(await audio.read())
-            temp_audio_path = temp_audio.name
+# @app.post("/api/transcribe")
+# async def transcribe_audio(audio: UploadFile = File(...)):
+#     try:
+#         # Save uploaded file to a temporary location
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio:
+#             temp_audio.write(await audio.read())
+#             temp_audio_path = temp_audio.name
 
-        # Transcribe audio
-        result = whisper_model.transcribe(temp_audio_path)
-        transcript = result["text"]
+#         # Transcribe audio
+#         result = whisper_model.transcribe(temp_audio_path)
+#         transcript = result["text"]
 
-        # Extract medical entities
-        medical_entities = extract_medical_entities(transcript)
+#         # Extract medical entities
+#         medical_entities = extract_medical_entities(transcript)
 
-        # Create report
-        report_data = {
-            "timestamp": datetime.now(),
-            "transcript": transcript,
-            "medical_entities": medical_entities
-        }
-        report = await create_report(Report(**report_data))
+#         # Create report
+#         report_data = {
+#             "timestamp": datetime.now(),
+#             "transcript": transcript,
+#             "medical_entities": medical_entities
+#         }
+#         report = await create_report(Report(**report_data))
 
-        # Analyze medical content
-        analysis_data = analyze_medical_content(transcript)
+#         # Analyze medical content
+#         analysis_data = analyze_medical_content(transcript)
         
-        # Create analysis
-        full_analysis_data = {
-            "report_id": report["id"],
-            "timestamp": datetime.now(),
-            "symptoms": analysis_data["symptoms"],
-            "medical_history": {"detected_conditions": medical_entities.get("conditions", [])},
-            "severity": analysis_data["severity"],
-            "urgency": analysis_data["urgency"]
-        }
-        analysis = await create_analysis(Analysis(**full_analysis_data))
+#         # Create analysis
+#         full_analysis_data = {
+#             "report_id": report["id"],
+#             "timestamp": datetime.now(),
+#             "symptoms": analysis_data["symptoms"],
+#             "medical_history": {"detected_conditions": medical_entities.get("conditions", [])},
+#             "severity": analysis_data["severity"],
+#             "urgency": analysis_data["urgency"]
+#         }
+#         analysis = await create_analysis(Analysis(**full_analysis_data))
 
-        # Clean up temporary file
-        os.unlink(temp_audio_path)
+#         # Clean up temporary file
+#         os.unlink(temp_audio_path)
 
-        return {
-            "transcript": transcript,
-            "report_id": report["id"],
-            "analysis_id": analysis["id"],
-            "medical_entities": medical_entities
-        }
+#         return {
+#             "transcript": transcript,
+#             "report_id": report["id"],
+#             "analysis_id": analysis["id"],
+#             "medical_entities": medical_entities
+#         }
 
-    except Exception as e:
-        logger.error(f"Transcription error: {e}")
-        # Clean up temp file if it exists
-        if 'temp_audio_path' in locals() and os.path.exists(temp_audio_path):
-            os.unlink(temp_audio_path)
-        raise HTTPException(status_code=500, detail=str(e))
+#     except Exception as e:
+#         logger.error(f"Transcription error: {e}")
+#         # Clean up temp file if it exists
+#         if 'temp_audio_path' in locals() and os.path.exists(temp_audio_path):
+#             os.unlink(temp_audio_path)
+#         raise HTTPException(status_code=500, detail=str(e))

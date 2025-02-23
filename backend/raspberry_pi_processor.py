@@ -1,4 +1,3 @@
-# raspberry_pi_processor.py
 import sounddevice as sd
 import numpy as np
 import requests
@@ -16,6 +15,20 @@ class AudioProcessor:
         print("Loading spaCy model...")
         self.nlp = spacy.load("en_core_web_sm")  
         self.api_url = "http://localhost:8000/api"
+        
+        # Medical keywords for analysis
+        self.medical_terms = {
+            "severity_keywords": {
+                "severe": ["severe", "intense", "extreme", "worst"],
+                "moderate": ["moderate", "significant", "uncomfortable"],
+                "mild": ["mild", "slight", "minor"]
+            },
+            "urgency_keywords": {
+                "emergency": ["emergency", "immediately", "severe pain", "chest pain"],
+                "urgent": ["urgent", "worrying", "getting worse"],
+                "routine": ["routine", "chronic", "ongoing"]
+            }
+        }
         print("System ready!")
         
     def record_audio(self):
@@ -64,7 +77,6 @@ class AudioProcessor:
         
     def extract_medical_info(self, text):
         """Extract medical entities and key information"""
-        print("Extracting medical information...")
         doc = self.nlp(text)
         
         medical_entities = {
@@ -84,52 +96,75 @@ class AudioProcessor:
             elif ent.label_ == "PROCEDURE":
                 medical_entities["procedures"].append(ent.text)
         
-        print("\nExtracted Medical Entities:")
-        print(json.dumps(medical_entities, indent=2))
         return medical_entities
 
     def analyze_medical_content(self, text):
         """Analyze medical content for severity and urgency"""
-        # Simple keyword-based analysis for severity
-        severity_keywords = {
-            "severe": ["severe", "intense", "extreme", "worst"],
-            "moderate": ["moderate", "significant", "uncomfortable"],
-            "mild": ["mild", "slight", "minor"]
-        }
-
-        # Simple keyword-based analysis for urgency
-        urgency_keywords = {
-            "emergency": ["emergency", "immediately", "severe pain", "chest pain"],
-            "urgent": ["urgent", "worrying", "getting worse"],
-            "routine": ["routine", "chronic", "ongoing"]
-        }
-
         text_lower = text.lower()
+        medical_info = self.extract_medical_info(text)
         
         # Determine severity
         severity = {"level": "mild", "confidence": 0.5}
-        for level, keywords in severity_keywords.items():
+        for level, keywords in self.medical_terms["severity_keywords"].items():
             if any(keyword in text_lower for keyword in keywords):
                 severity = {"level": level, "confidence": 0.8}
                 break
 
         # Determine urgency
         urgency = {"level": "routine", "confidence": 0.5}
-        for level, keywords in urgency_keywords.items():
+        for level, keywords in self.medical_terms["urgency_keywords"].items():
             if any(keyword in text_lower for keyword in keywords):
                 urgency = {"level": level, "confidence": 0.8}
                 break
 
+        # Print analysis report
+        self._print_analysis_report(medical_info, severity, urgency)
+
         return {
-            "symptoms": self.extract_medical_info(text),
+            "symptoms": medical_info,
             "severity": severity,
             "urgency": urgency
         }
+
+    def _print_analysis_report(self, medical_info, severity, urgency):
+        """Print formatted analysis report"""
+        print("\nMEDICAL ANALYSIS REPORT")
+        print("=" * 50)
+
+        if any(medical_info["symptoms"]):
+            print("\nSYMPTOMS IDENTIFIED:")
+            for symptom in medical_info["symptoms"]:
+                print(f"- {symptom}")
         
-    def send_to_api(self, endpoint, data):
-        """Send data to API endpoint"""
+        if any(medical_info["conditions"]):
+            print("\nMEDICAL CONDITIONS:")
+            for condition in medical_info["conditions"]:
+                print(f"- {condition}")
+
+        print("\nSEVERITY ASSESSMENT:")
+        print(f"Level: {severity['level'].upper()}")
+        print(f"Confidence: {severity['confidence']*100:.1f}%")
+
+        print("\nURGENCY ASSESSMENT:")
+        print(f"Level: {urgency['level'].upper()}")
+        
+        print("\nRECOMMENDATIONS:")
+        if urgency['level'] == 'emergency':
+            print("- IMMEDIATE MEDICAL ATTENTION REQUIRED")
+            print("- Emergency services should be contacted")
+        elif urgency['level'] == 'urgent':
+            print("- Urgent medical consultation recommended")
+            print("- Follow-up within 24-48 hours")
+        else:
+            print("- Routine follow-up recommended")
+            print("- Monitor symptoms for changes")
+
+        print("=" * 50)
+
+    def send_to_api(self, data):
+        """Send data to API"""
         try:
-            url = f"{self.api_url}/{endpoint}"
+            url = f"{self.api_url}/reports"
             response = requests.post(
                 url,
                 json=data,
@@ -146,48 +181,33 @@ class AudioProcessor:
     def process_conversation(self):
         """Main processing pipeline"""
         try:
-            # Record audio
             audio = self.record_audio()
             
             if audio is not None:
-                # Save audio to file
                 audio_path = self.save_audio(audio)
-                
-                # Transcribe
                 transcript = self.transcribe_audio(audio_path)
                 
-                # Create and send report
+                # Get analysis right after transcription
+                analysis = self.analyze_medical_content(transcript)
+                
+                # Prepare combined report data
                 report_data = {
                     "timestamp": datetime.now().isoformat(),
                     "transcript": transcript,
-                    "medical_entities": self.extract_medical_info(transcript)
+                    "medical_entities": self.extract_medical_info(transcript),
+                    "analysis": analysis
                 }
                 
-                report_response = self.send_to_api("reports", report_data)
-                
-                if report_response:
-                    report_id = report_response["id"]
-                    print(f"\nReport created with ID: {report_id}")
-                    
-                    # Analyze and send analysis
-                    analysis = self.analyze_medical_content(transcript)
-                    analysis_data = {
-                        "report_id": report_id,
-                        "timestamp": datetime.now().isoformat(),
-                        "symptoms": analysis["symptoms"],
-                        "severity": analysis["severity"],
-                        "urgency": analysis["urgency"]
-                    }
-                    
-                    analysis_response = self.send_to_api("analyses", analysis_data)
-                    if analysis_response:
-                        print("\nAnalysis created successfully")
-                        return report_response, analysis_response
+                # Send to API
+                response = self.send_to_api(report_data)
+                if response:
+                    print("\nReport and analysis saved successfully")
+                    return response
                     
             return None
             
         except Exception as e:
-            print(f"Error in processing pipeline: {e}")
+            print(f"\nError: {str(e)}")
             return None
 
 def main():
