@@ -15,7 +15,7 @@ class AudioProcessor:
         self.model = whisper.load_model("base")
         print("Loading spaCy model...")
         self.nlp = spacy.load("en_core_web_sm")  
-        self.api_url = "https://cavista.onrender.com/api"
+        self.api_url = "http://localhost:8000/api"
         print("System ready!")
         
     def record_audio(self):
@@ -179,7 +179,7 @@ class AudioProcessor:
                         "urgency": analysis["urgency"]
                     }
                     
-                    analysis_response = self.send_to_api("analysis", analysis_data)
+                    analysis_response = self.send_to_api("analyses", analysis_data)
                     if analysis_response:
                         print("\nAnalysis created successfully")
                         return report_response, analysis_response
