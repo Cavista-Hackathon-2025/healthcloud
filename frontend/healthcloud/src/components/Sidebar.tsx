@@ -4,6 +4,7 @@ import { ReportsPaths } from "@/routes/reports/ReportsPaths";
 import { TranscriptionPaths } from "@/routes/transcription/TranscriptionPaths";
 import { FaNotesMedical, FaRegFileLines } from "react-icons/fa6";
 import { NavLink } from "react-router-dom";
+import { LuVideotape } from "react-icons/lu";
 
 export const Sidebar = () => {
     const LINKS = [
@@ -17,11 +18,11 @@ export const Sidebar = () => {
             icon: <FaRegFileLines />,
             href: ReportsPaths.REPORTS,
         },
-        // {
-        //     label: "Recordings",
-        //     icon: <LuVideotape />,
-        //     href: TranscriptionPaths.RECORDING_HISTORY,
-        // },
+        {
+            label: "Recordings",
+            icon: <LuVideotape />,
+            href: TranscriptionPaths.RECORDING_HISTORY,
+        },
     ];
 
     return (
